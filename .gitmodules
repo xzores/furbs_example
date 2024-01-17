@@ -1,0 +1,3 @@
+[submodule "furbs"]
+	path = furbs
+	url = https://github.com/xzores/furbs
