@@ -1,16 +1,20 @@
 package user_defs;
 
-//DO NOT CHANGE THIS
-Texture_slot :: distinct i32;
-
 Attribute_location :: enum {
 	//Default, used by the library, don't remove or rename.
 	position, // Shader location: vertex attribute: position
     texcoord, // Shader location: vertex attribute: texcoord01
     normal, // Shader location: vertex attribute: normal
 
+	//for instancing
+	instance_position,
+	instance_scale,
+	//TODO rotation
+	instance_texcoord,
+	
 	///////// user attributes below /////////
-	tangent
+	tangent,
+	color,
 }
 
 Uniform_location :: enum {
@@ -18,7 +22,7 @@ Uniform_location :: enum {
 	//Per Frame
 	game_time,
 	real_time,
-
+	
 	//Per camera
 	prj_mat,
 	inv_prj_mat,
@@ -34,9 +38,6 @@ Uniform_location :: enum {
 	inv_model_mat,	//will it ever be used?
 	
 	color_diffuse,
-	
-	//Textures
-	texture_diffuse,
 
 	//For text
 	texcoords,
@@ -45,9 +46,7 @@ Uniform_location :: enum {
 	
 }
 
-texture_locations : map[Uniform_location]Texture_slot = {
-	.texture_diffuse = 0, ///= gl.TEXTURE0
-	
-	///////// user textures below /////////
-
+Texture_location :: enum {
+	//Textures
+	texture_diffuse,
 }

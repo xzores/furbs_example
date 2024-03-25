@@ -1,1 +1,2 @@
-Made these beauties myself, they are public domain, use as you wish.
+These cursors are under CC0 1.0 Universal lisence, you are free to use them, for more info see https://creativecommons.org/publicdomain/zero/1.0/
+These are not made by me, they are made by Wenrexa, link : https://wenrexa.itch.io/cursors4/download/eyJpZCI6OTY4NjI4LCJleHBpcmVzIjoxNzA5NjY5ODkyfQ%3d%3d%2enxARrjkhp3yPfP6x1n6o%2fl%2fiS6M%3d

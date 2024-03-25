@@ -1,0 +1,21 @@
+{
+	"javascript.autoClosingTags": false,
+	"javascript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": false,
+	"javascript.format.insertSpaceAfterKeywordsInControlFlowStatements": false,
+	"javascript.format.insertSpaceAfterOpeningAndBeforeClosingEmptyBraces": false,
+	"javascript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
+	"javascript.format.insertSpaceAfterSemicolonInForStatements": false,
+	"javascript.format.insertSpaceBeforeAndAfterBinaryOperators": false,
+	"javascript.inlayHints.enumMemberValues.enabled": false,
+	"javascript.suggest.autoImports": false,
+	"javascript.suggest.includeAutomaticOptionalChainCompletions": false,
+	"typescript.autoClosingTags": false,
+	"typescript.format.insertSpaceAfterCommaDelimiter": false,
+	"typescript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": false,
+	"typescript.format.insertSpaceAfterKeywordsInControlFlowStatements": false,
+	"typescript.format.insertSpaceAfterOpeningAndBeforeClosingEmptyBraces": false,
+	"typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
+	"typescript.format.insertSpaceAfterSemicolonInForStatements": false,
+	"typescript.format.insertSpaceBeforeAndAfterBinaryOperators": false,
+	"typescript.preferences.jsxAttributeCompletionStyle": "none"
+}
