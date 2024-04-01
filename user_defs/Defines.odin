@@ -20,15 +20,18 @@ Attribute_location :: enum {
 Uniform_location :: enum {
 
 	//Per Frame
-	game_time,
-	real_time,
-	
+	time,
+	delta_time,	
+
 	//Per camera
 	prj_mat,
 	inv_prj_mat,
 	
 	view_mat,
 	inv_view_mat,
+
+	view_prj_mat,
+	inv_view_prj_mat,
 
 	//Per model
 	mvp,

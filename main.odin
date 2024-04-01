@@ -11,6 +11,8 @@ import "core:runtime"
 
 import "core:image/png"
 
+import fs "vendor:fontstash"
+
 import render "furbs/render"
 //import gui "furbs/gui"
 import "furbs/utils"
@@ -32,10 +34,10 @@ Vertex :: struct {
 
 /*
 TODO
-Draw meshes (this will use a shared mesh), when we can draw quads we can draw text.
-Then when that is done fix some mesh generation functions.
-Do text rendering.... how did I used to do it?
+Finish the opengl wrapper to use odin arrays and enums and bitsets.
+when using double bufferingda uploading all data every frame, there should be a keep_consistent variable.
 Draw FPS counter
+Then when that is done fix some mesh generation functions.
 When that is done you can do more complicated meshing stuff and get ready for particals.
 
 When that is done do 3D textures.
@@ -52,18 +54,112 @@ vertex_data : []Vertex = {
 	{{-1,-1,0}, {0,0}, {0,0,1,0}},
 }
 
-My_Instace_data :: struct {
-	instance_position 	: [3]f32,
-	instance_scale		: [3]f32,
-	instance_texcoord	: [2]f32,
-}
-
 Ball :: struct {
 	position, velocity : [3]f32,
 }
 
 main :: proc () {
+	using render;
+
+	context.logger = utils.create_console_logger(.Info);
+
+	utils.init_tracking_allocators();
+	{
+		uniform_spec 	: [Uniform_location]Uniform_info = {};		//TODO make these required	
+		attribute_spec 	: [Attribute_location]Attribute_info = {}; 	//TODO make these required
+		
+		window_desc : Window_desc = {
+			width = 600,
+			height = 600,
+			title = "my main window",
+			resize_behavior = .resize_backbuffer,
+			antialiasing = .msaa8,
+		}
+		
+		window := init(uniform_spec, attribute_spec, shader_defs, required_gl_verion = .opengl_3_3, window_desc = window_desc, pref_warn = false);
+		defer destroy();
+		
+		enable_vsync(true);
+		
+		my_fbo : Frame_buffer;
+		init_frame_buffer_textures(&my_fbo, 1, 512, 512, .RGBA8, .depth_component32, false, .nearest);
+		defer destroy_frame_buffer(my_fbo);
+
+		tex_color 	: Texture2D = my_fbo.color_attachments[0].(render.Texture2D);
+		tex_depth 	: Texture2D = my_fbo.depth_attachment.(render.Texture2D);
+		tex_up 		: Texture2D = load_texture_2D_from_file("examples/res/textures/up.png");
+		defer destroy_texture_2D(&tex_up);
+
+		pipeline := make_pipeline(get_default_shader(), depth_test = false);
+		
+		//my_shader, err := load_shader_from_path("my_shader.glsl");
+		//assert(err == nil);
+		//defer unload_shader(my_shader); //TODO should it not be destroy_shader?
+		
+		/*cam : Camera2D = {
+			position 		= [2]f32{0,0},      // Camera position
+			target_relative = [2]f32{0,0},		// 
+			rotation		= 0,				// in degrees
+			zoom	 		= 1,            	//
+			
+			far 			= 1000, 
+			near			= 0.01,
+		};*/
+		
+		cam : Camera3D = {
+			position 		= {0,0,0},
+			target 			= {0,0,1},
+			up				= {0,1,0},
+			fovy     		= 0, //unused for orthographic
+			ortho_height 	= 1,
+			projection		= .orthographic,
+			near 			= -1000,
+			far 			= 1000,
+		};
+
+		for !should_close(window) {
+			begin_frame();
+				
+				begin_target(&my_fbo, [4]f32{0,0,0,0});
+					draw_text_simple("Hello World", {0,0}, 100, 0, {0,0,0,1});
+				end_target();
+				
+				begin_target(window, [4]f32{0.3,0.3,0.3,0});
+					
+					begin_pipeline(pipeline, cam);
+					set_texture(.texture_diffuse, tex_up);
+					draw_quad(1);
+					set_texture(.texture_diffuse, tex_color);
+					draw_quad(1);
+					end_pipeline();
+
+					draw_text_simple("This is text", {0,200}, 100, 0, {0,1,0,1});
+					
+				end_target();
+
+			end_frame();
+		}
+	}
 	
+	utils.print_tracking_memory_results();
+	utils.destroy_tracking_allocators();
+
+	fmt.printf("Successfully closed\n");
+}
+
+/*
+main2 :: proc () {
+
+	/*
+		font_context_test : fs.FontContext;
+		fs.Init(&font_context_test, 1, 1, .BOTTOMLEFT);
+		fd := #load("furbs/render/font/LinLibertine_R.ttf", []u8);
+		fs.AddFontMem(&font_context_test, "test", fd, false);
+		fs.TextIterInit(&font_context_test, 0, 0, "Hello world");
+		my_any : any = &font_context_test;
+		fmt.printf("font_context_test : %v\n", my_any);
+	*/
+
 	context.logger = utils.create_console_logger(.Info);
 
 	utils.init_tracking_allocators();
@@ -135,12 +231,12 @@ main :: proc () {
 		defer destroy_mesh(&my_arrow);
 		
 		my_balls : []Ball = make([]Ball, 10000);
-		my_instance_data : []My_Instace_data = make([]My_Instace_data, len(my_balls));
+		my_instance_data : []Default_instance_data = make([]Default_instance_data, len(my_balls));
 		defer delete(my_balls);
 		defer delete(my_instance_data);
 		
 		sd, si := generate_sphere(use_index_buffer = false);
-		instance_desc := Instance_data_desc{data_type = My_Instace_data, data_points = len(my_balls), usage = .dynamic_upload};
+		instance_desc := Instance_data_desc{data_type = Default_instance_data, data_points = len(my_balls), usage = .dynamic_upload};
 		my_sphere_instanced := make_mesh_single(sd, nil, .static_use, .triangles, instance_desc);
 		//my_sphere_instanced := make_mesh_buffered(4, len(sd), Default_vertex, len(si), .no_index_buffer, .dynamic_use, .triangles, instance_desc);
 		//upload_vertex_data(&my_sphere_instanced, 0, sd);
@@ -232,7 +328,7 @@ main :: proc () {
 				}
 				ball.position += ball.velocity * dt;
 				ball.velocity += [3]f32{0,-7,0} * dt;
-
+				
 				my_instance_data[i].instance_position = ball.position;
 			}
 			
@@ -271,7 +367,8 @@ main :: proc () {
 			upload_vertex_data(&my_super_mesh, 0, mesh_datas[cur_mesh_datas].verts);
 			upload_index_data(&my_super_mesh, 0, mesh_datas[cur_mesh_datas].indicies);
 			cur_mesh_datas = (int(t*3)) %% len(mesh_datas);
-
+						
+			
 			begin_pipeline(my_pipeline2, camera, [4]f32{1,0,0,0.5});
 			set_texture(.texture_diffuse, tex2);
 			draw_mesh(&my_arrow, linalg.matrix4_translate_f32({-3,0,0}));
@@ -321,7 +418,8 @@ main :: proc () {
 			set_texture(.texture_diffuse, tex3);
 			draw_mesh(&my_quad, linalg.matrix4_translate_f32({0,2.1,0})); //place 1 is model_matrix for identity matrix
 			end_pipeline(my_pipeline);
-			
+
+			draw_text_simple(window, "Hello World", {0,0}, 100);
 			//draw_coordinate_overlay(window, camera);
 			
 			//fmt.printf("Cam : %v, %v\n", camera.position, camera_forward(camera));
@@ -370,4 +468,5 @@ main :: proc () {
 
 	destroy();
 }	
+*/
 */
