@@ -7,10 +7,6 @@ layout (location = 0) in vec3 position;
 layout (location = 1) in vec2 texcoord;
 layout (location = 2) in vec3 normal;
 
-layout (location = 3) in vec3 instance_position_offset;
-layout (location = 4) in vec3 instance_scale_offset;
-layout (location = 5) in vec4 instance_texcoord_offset;
-
 //// Uniforms ////
 uniform float time;
 uniform mat4 delta_time;
@@ -35,18 +31,21 @@ out vec2 texture_coords;
 out vec4 pos;
 
 void main() {
-	texture_coords = (texcoord * (instance_texcoord_offset.zw)) + instance_texcoord_offset.xy;
+	texture_coords = texcoord;
 	
-	pos = vec4((position * instance_scale_offset) + instance_position_offset, 1);
+	pos = vec4(position, 1);
 	
+	//pos.x = -pos.x;
+	//pos = pos + vec4(0, 0, sin(time*1),0);
+
 	//TODOs test again
-	//float t = (sin(time) + 0.999) / 2;
+	//float t = (sin(time) + 1) / 2;
+	//t = 0.3;
 	//vec4 pos2 = mvp * pos;
 	//pos = pos2 * t + (1 - t) * pos;
 
 	gl_Position = mvp * pos;
 }
-
 
 
 ///Fragment shader begin
@@ -66,6 +65,6 @@ out vec4 FragColor;
 void main() {
 	vec4 tex_color = texture(texture_diffuse, texture_coords);
 	
-    FragColor = color_diffuse * vec4(1, 1, 1, tex_color.r);
+    FragColor = color_diffuse * tex_color;
 }
 

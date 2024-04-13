@@ -9,8 +9,8 @@ Attribute_location :: enum {
 	//for instancing
 	instance_position,
 	instance_scale,
-	//TODO rotation
-	instance_texcoord,
+	instance_rotation,
+	instance_tex_pos_scale,
 	
 	///////// user attributes below /////////
 	tangent,
@@ -42,11 +42,9 @@ Uniform_location :: enum {
 	
 	color_diffuse,
 
-	//For text
-	texcoords,
-
 	///////// user uniforms below /////////
 	
+	sun,
 }
 
 Texture_location :: enum {
