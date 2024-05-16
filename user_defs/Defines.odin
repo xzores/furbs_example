@@ -59,6 +59,4 @@ Texture_location :: enum {
 	texture_2,
 	texture_3,
 	texture_4,
-
-	texture_kernel,
 }
