@@ -45,9 +45,20 @@ Uniform_location :: enum {
 	///////// user uniforms below /////////
 	
 	sun,
+	sample_dist,
+	tex_size,
+	rate,
 }
 
 Texture_location :: enum {
 	//Textures
-	texture_diffuse,
+	texture_diffuse = 0,
+	
+	//User textures
+	texture_1 = 0,
+	texture_2,
+	texture_3,
+	texture_4,
+
+	texture_kernel,
 }
