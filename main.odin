@@ -34,7 +34,9 @@ Vertex :: struct {
 
 /*
 TODO
-WINDOW fullscreen
+WINDOW fullscreen, test for secoundary window and make current one work
+See more in window, a lot of no done functions
+TODO test that running without a main window works.
 Make VAO's like active texture (client side)
 TODO upload consistent instance data and mesh data.
 
@@ -64,7 +66,8 @@ Eye :: struct {
 	position : [3]f32,
 }
 
-main :: proc () {
+
+main1 :: proc () {
 
 	context.logger = utils.create_console_logger(.Info);
 	
@@ -92,7 +95,7 @@ main :: proc () {
 		window := init(uniform_spec, attribute_spec, shader_defs, required_gl_verion = .opengl_4_5, window_desc = window_desc, pref_warn = true);
 		defer destroy();
 
-		enable_vsync(false);
+		window_set_vsync(false);
 
 		my_balls 			: []Ball = make([]Ball, 10000);
 		my_instance_data 	: []Default_instance_data = make([]Default_instance_data, len(my_balls));
@@ -119,7 +122,7 @@ main :: proc () {
 			far 		= 1000,
 		};
 	
-		for !should_close(window) {
+		for !window_should_close(window) {
 			begin_frame();
 
 			for &ball, i in my_balls {
@@ -160,7 +163,7 @@ main :: proc () {
 	fmt.printf("Successfully closed\n");
 }
 
-main3 :: proc () {
+main2 :: proc () {
 	
 	context.logger = utils.create_console_logger(.Info);
 	
@@ -192,23 +195,22 @@ main3 :: proc () {
 		
 		//window := make_window_desc(window_desc);
 		//defer destroy_window(window);
-		//window_2 := make_window(400, 400, "my_window_2", .resize_backbuffer, .none);
-		//defer destroy_window(window_2);
+		window_2 := window_make(400, 400, "my_window_2", .resize_backbuffer, .none);
+		defer window_destroy(window_2);
+
+		my_frame_buffer := frame_buffer_make_textures(1, 400, 400, .RGBA8, .depth_component32, false, .nearest);
+		defer frame_buffer_destroy(my_frame_buffer);
 		
-		my_frame_buffer : Frame_buffer;
-		init_frame_buffer_textures(&my_frame_buffer, 1, 400, 400, .RGBA8, .depth_component32, false, .nearest);
-		defer destroy_frame_buffer(my_frame_buffer);
-		
-		mouse_mode(window, .locked);
+		//window_set_mouse_mode(window, .bound);
 		
 		//Sets the cursor for the window
 		img, err := png.load("examples/res/cursor/Cursor Default Friends.png", {.alpha_add_if_missing})
-		defer png.destroy(img);
-		set_cursor(window, img.width, img.height ,img.pixels.buf[:]);
+		window_set_cursor_icon(window, img.width, img.height, img.pixels.buf[:]);
+		png.destroy(img);
 
 		my_shader, e := load_shader_from_path("my_shader.glsl");
 		assert(e == nil, "failed to load shader");
-		defer unload_shader(my_shader);
+		defer destroy_shader(my_shader);
 		
 		//A pipeline is a collection of OpenGL states, a render target and a shader.
 		//The target can be a window to draw to the screen or an FBO for drawing to a texture.
@@ -305,28 +307,35 @@ main3 :: proc () {
 			far 		= 1000,
 		};
 		
-		//tex := make_texture_2D(512, 512, false, .repeat, .linear, .uncompressed_RGBA8, .no_upload, nil);
-		tex := load_texture_2D_from_file("examples/res/textures/dirt.png", {.clamp_to_edge, .nearest, false, .uncompressed_RGBA8});
+		//tex := make_texture_2D(512, 512, false, .repeat, .linear, .RGBA8, .no_upload, nil);
+		tex := load_texture_2D_from_file("examples/res/textures/dirt.png", {.clamp_to_edge, .nearest, false, .RGBA8});
 		defer destroy_texture_2D(&tex);
 
-		tex2 := load_texture_2D_from_file("examples/res/textures/test.png", {.repeat, .nearest, true, .uncompressed_RGBA8});
+		tex2 := load_texture_2D_from_file("examples/res/textures/test.png", {.repeat, .nearest, true, .RGBA8});
 		defer destroy_texture_2D(&tex2);
 
 		tex3 := my_frame_buffer.color_attachments[0].(render.Texture2D);
 		
-		tex_up := load_texture_2D_from_file("examples/res/textures/up.png", {.repeat, .nearest, true, .uncompressed_RGBA8});
+		tex_up := load_texture_2D_from_file("examples/res/textures/up.png", {.repeat, .nearest, true, .RGBA8});
 		defer destroy_texture_2D(&tex_up);
 		
-		tex_eye := load_texture_2D_from_file("examples/res/textures/eye.png", {.repeat, .nearest, true, .uncompressed_RGBA8});
+		tex_eye := load_texture_2D_from_file("examples/res/textures/eye.png", {.repeat, .nearest, true, .RGBA8});
 		defer destroy_texture_2D(&tex_eye);
 		
 		cam_rot : [2]f32;
 		speed : f32 = 10;
 		last_frame := time.now();
 		vsync : bool = true;
-		enable_vsync(vsync);
+		fullscreen : render.Fullscreen_mode = .windowed;
+		window_set_vsync(vsync);
+		
+		for !window_should_close(window) {
 
-		for !should_close(window) {
+			if fullscreen != window.current_fullscreen {
+				window_set_fullscreen(state.window_in_focus, fullscreen);
+				fmt.printf("setting screen mode : %v\n", fullscreen);
+			}
+
 			begin_frame();
 
 			if is_key_pressed(.f5) {
@@ -334,11 +343,16 @@ main3 :: proc () {
 			}
 			if is_key_pressed(.f7) {
 				vsync = !vsync;
-				enable_vsync(vsync);
+				window_set_vsync(vsync);
 				fmt.printf("VSYNC : %v\n", vsync);
 			}
 			if is_key_pressed(.f11) {
-				enable_fullscreen(state.window_in_focus, !state.window_in_focus.is_fullscreen);
+				if fullscreen != .windowed {
+					fullscreen = .windowed
+				}
+				else {
+					fullscreen = .fullscreen;
+				}
 			}
 			
 			now :=  time.now();
@@ -500,3 +514,4 @@ main3 :: proc () {
 
 	fmt.printf("Successfully closed\n");
 }
+

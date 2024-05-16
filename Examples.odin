@@ -19,6 +19,7 @@ import "furbs/utils"
 
 import gl "furbs/render/gl"
 
+/*
 look_at_example :: proc () {
 	using render;
 
@@ -244,4 +245,4 @@ main2 :: proc () {
 
 	fmt.printf("Successfully closed\n");
 }
-
+*/
