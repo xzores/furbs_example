@@ -104,12 +104,12 @@ main1 :: proc () {
 
 		sd, si := generate_sphere(use_index_buffer = false);
 		instance_desc := Instance_data_desc{data_type = Default_instance_data, data_points = len(my_balls), usage = .dynamic_upload};
-		my_sphere_instanced := make_mesh_buffered(2, len(sd), Default_vertex, len_indices(si), .no_index_buffer, .dynamic_use, .triangles, instance_desc);
+		my_sphere_instanced := make_mesh_buffered(2, len(sd), Default_vertex, indices_len(si), .no_index_buffer, .dynamic_use, .triangles, instance_desc);
 		upload_vertex_data(&my_sphere_instanced, 0, sd);
-		delete(sd);	delete_indices(si);
-		defer destroy_mesh(&my_sphere_instanced);
+		delete(sd);	indices_delete(si);
+		defer mesh_destroy(&my_sphere_instanced);
 
-		my_pipeline_instanced := make_pipeline(get_default_instance_shader(), culling = .back_cull);
+		my_pipeline_instanced := pipeline_make(get_default_instance_shader(), culling = .back_cull);
 
 		camera : Camera3D = {
 			position 	= {0,0,-10},
@@ -141,12 +141,12 @@ main1 :: proc () {
 			
 			upload_instance_data_buffered(&my_sphere_instanced, 0, my_instance_data, false);
 			
-			begin_target(window, [4]f32{0.5,0.5,0.5,1});	
-				begin_pipeline(my_pipeline_instanced, camera);
-					set_texture(.texture_diffuse, get_white_texture());
-					draw_mesh_instanced(&my_sphere_instanced, len(my_balls)); //Draw like this.
-				end_pipeline();
-			end_target();
+			target_begin(window, [4]f32{0.5,0.5,0.5,1});	
+				pipeline_begin(my_pipeline_instanced, camera);
+					set_texture(.texture_diffuse, texture2D_get_white());
+					mesh_draw_instanced(&my_sphere_instanced, len(my_balls)); //Draw like this.
+				pipeline_end();
+			target_end();
 			
 			draw_coordinate_overlay(window, camera);
 			draw_fps_overlay(window);
@@ -163,7 +163,7 @@ main1 :: proc () {
 	fmt.printf("Successfully closed\n");
 }
 
-main2 :: proc () {
+main :: proc () {
 	
 	context.logger = utils.create_console_logger(.Info);
 	
@@ -207,17 +207,17 @@ main2 :: proc () {
 		img, err := png.load("examples/res/cursor/Cursor Default Friends.png", {.alpha_add_if_missing})
 		window_set_cursor_icon(window, img.width, img.height, img.pixels.buf[:]);
 		png.destroy(img);
-
-		my_shader, e := load_shader_from_path("my_shader.glsl");
+		
+		my_shader, e := shader_load_from_path("my_shader.glsl");
 		assert(e == nil, "failed to load shader");
-		defer destroy_shader(my_shader);
+		defer shader_destroy(my_shader);
 		
 		//A pipeline is a collection of OpenGL states, a render target and a shader.
 		//The target can be a window to draw to the screen or an FBO for drawing to a texture.
-		my_pipeline := make_pipeline(get_default_shader(), culling = .back_cull);
-		my_pipeline_instanced := make_pipeline(get_default_instance_shader(), culling = .back_cull);
-		my_pipeline2 := make_pipeline(my_shader, culling = .back_cull);
-		//my_pipeline3 := make_pipeline(window_2, my_shader, culling = .back_cull);
+		my_pipeline := pipeline_make(get_default_shader(), culling = .back_cull);
+		my_pipeline_instanced := pipeline_make(get_default_instance_shader(), culling = .back_cull);
+		my_pipeline2 := pipeline_make(my_shader, culling = .back_cull);
+		//my_pipeline3 := pipeline_make(window_2, my_shader, culling = .back_cull);
 		
 		//my_mesh := make_mesh(vertex_data, nil, .sinsgle, .dynamic_use);
 		my_quad := make_mesh_quad({1,1,1}, {0,0,0}, false);
@@ -227,13 +227,13 @@ main2 :: proc () {
 		my_sphere := make_mesh_sphere({0,0,0}, 1, 20, 20, true);
 		my_cone := make_mesh_cone({0,0,0}, 1, 1, 20, true);
 		my_arrow := make_mesh_arrow({1,0,0}, 1, 0.6, 0.25, 0.7, 20, true);
-		defer destroy_mesh(&my_quad);
-		defer destroy_mesh(&my_cirle);
-		defer destroy_mesh(&my_cube);
-		defer destroy_mesh(&my_cylinder);
-		defer destroy_mesh(&my_sphere);
-		defer destroy_mesh(&my_cone);
-		defer destroy_mesh(&my_arrow);
+		defer mesh_destroy(&my_quad);
+		defer mesh_destroy(&my_cirle);
+		defer mesh_destroy(&my_cube);
+		defer mesh_destroy(&my_cylinder);
+		defer mesh_destroy(&my_sphere);
+		defer mesh_destroy(&my_cone);
+		defer mesh_destroy(&my_arrow);
 		
 		my_balls 			: []Ball = make([]Ball, 10000);
 		my_instance_data 	: []Default_instance_data = make([]Default_instance_data, len(my_balls));
@@ -247,12 +247,12 @@ main2 :: proc () {
 		
 		sd, si := generate_sphere(use_index_buffer = false);
 		instance_desc := Instance_data_desc{data_type = Default_instance_data, data_points = len(my_balls), usage = .dynamic_upload};
-		//my_sphere_instanced := make_mesh_single(sd, si, .static_use, .triangles, instance_desc);
+		//my_sphere_instanced := mesh_make_single(sd, si, .static_use, .triangles, instance_desc);
 		//TODO VSYNC OFF, double buffering bug.
-		my_sphere_instanced := make_mesh_buffered(10, len(sd), Default_vertex, len_indices(si), .no_index_buffer, .dynamic_use, .triangles, instance_desc);
+		my_sphere_instanced := make_mesh_buffered(10, len(sd), Default_vertex, indices_len(si), .no_index_buffer, .dynamic_use, .triangles, instance_desc);
 		upload_vertex_data(&my_sphere_instanced, 0, sd);
-		delete(sd);	delete_indices(si);
-		defer destroy_mesh(&my_sphere_instanced);
+		delete(sd);	indices_delete(si);
+		defer mesh_destroy(&my_sphere_instanced);
 		
 		for &ball, i in my_balls {
 			ball = Ball{position = [3]f32{-6, 0, 0}, velocity = [3]f32{2*rand.float32() - 1, 10 * rand.float32(),2*rand.float32() -1}};
@@ -280,19 +280,19 @@ main2 :: proc () {
 			conv, coni := generate_cone({0,0,0}, 1, 1, 20, true);
 			mesh_datas[5] = {conv, coni};
 			v_size = math.max(len(qv), len(cirv), len(cubev), len(cyv), len(sv), len(conv));
-			i_size = math.max(len_indices(qi), len_indices(ciri), len_indices(cubei), len_indices(cyi), len_indices(si), len_indices(coni));
+			i_size = math.max(indices_len(qi), indices_len(ciri), indices_len(cubei), indices_len(cyi), indices_len(si), indices_len(coni));
 		}
 		
 		my_super_mesh := make_mesh_buffered(2, v_size, render.Default_vertex, i_size, .unsigned_short, .dynamic_use);
-		//my_super_mesh := make_mesh_single_empty(v_size, render.Default_vertex, i_size, .unsigned_short, .dynamic_use);
+		//my_super_mesh := mesh_make_single_empty(v_size, render.Default_vertex, i_size, .unsigned_short, .dynamic_use);
 
 		defer {
 			for m in mesh_datas {
-				delete(m.verts); delete_indices(m.indicies);
+				delete(m.verts); indices_delete(m.indicies);
 			}
-			destroy_mesh(&my_super_mesh);
+			mesh_destroy(&my_super_mesh);
 		}
-		resize_mesh(&my_super_mesh, my_super_mesh.vertex_count * 2, my_super_mesh.index_count * 2);
+		mesh_resize(&my_super_mesh, my_super_mesh.vertex_count * 2, my_super_mesh.index_count * 2);
 
 		fmt.printf("v_size : %v\n", v_size);
 		
@@ -307,20 +307,20 @@ main2 :: proc () {
 			far 		= 1000,
 		};
 		
-		//tex := make_texture_2D(512, 512, false, .repeat, .linear, .RGBA8, .no_upload, nil);
-		tex := load_texture_2D_from_file("examples/res/textures/dirt.png", {.clamp_to_edge, .nearest, false, .RGBA8});
-		defer destroy_texture_2D(&tex);
+		//tex := texture2D_make(512, 512, false, .repeat, .linear, .RGBA8, .no_upload, nil);
+		tex := texture2D_load_from_file("examples/res/textures/dirt.png", {.clamp_to_edge, .nearest, false, .RGBA8});
+		defer texture2D_destroy(&tex);
 
-		tex2 := load_texture_2D_from_file("examples/res/textures/test.png", {.repeat, .nearest, true, .RGBA8});
-		defer destroy_texture_2D(&tex2);
+		tex2 := texture2D_load_from_file("examples/res/textures/test.png", {.repeat, .nearest, true, .RGBA8});
+		defer texture2D_destroy(&tex2);
 
 		tex3 := my_frame_buffer.color_attachments[0].(render.Texture2D);
 		
-		tex_up := load_texture_2D_from_file("examples/res/textures/up.png", {.repeat, .nearest, true, .RGBA8});
-		defer destroy_texture_2D(&tex_up);
+		tex_up := texture2D_load_from_file("examples/res/textures/up.png", {.repeat, .nearest, true, .RGBA8});
+		defer texture2D_destroy(&tex_up);
 		
-		tex_eye := load_texture_2D_from_file("examples/res/textures/eye.png", {.repeat, .nearest, true, .RGBA8});
-		defer destroy_texture_2D(&tex_eye);
+		tex_eye := texture2D_load_from_file("examples/res/textures/eye.png", {.repeat, .nearest, true, .RGBA8});
+		defer texture2D_destroy(&tex_eye);
 		
 		cam_rot : [2]f32;
 		speed : f32 = 10;
@@ -339,7 +339,7 @@ main2 :: proc () {
 			begin_frame();
 
 			if is_key_pressed(.f5) {
-				reload_shaders(); //return a list of the shaders failing to reload, and keep using the old ones...
+				shader_reload_all(); //return a list of the shaders failing to reload, and keep using the old ones...
 			}
 			if is_key_pressed(.f7) {
 				vsync = !vsync;
@@ -411,46 +411,46 @@ main2 :: proc () {
 			upload_index_data_buffered(&my_super_mesh, 0, mesh_datas[cur_mesh_datas].indicies, true);
 			cur_mesh_datas = (int(t*3)) %% len(mesh_datas);	
 			
-			begin_target(&my_frame_buffer, [4]f32{1,0,0,0.5});
-				begin_pipeline(my_pipeline2, camera);
+			target_begin(&my_frame_buffer, [4]f32{1,0,0,0.5});
+				pipeline_begin(my_pipeline2, camera);
 					set_texture(.texture_diffuse, tex2);
-					draw_mesh(&my_arrow, linalg.matrix4_translate_f32({-2,0,0}));
-					draw_mesh(&my_cube, 1);
-					draw_mesh(&my_cirle, linalg.matrix4_translate_f32({1.5,0,0}));
-					draw_mesh(&my_quad, linalg.matrix4_translate_f32({3,0,0}));
-					draw_mesh(&my_cylinder, linalg.matrix4_translate_f32({4.5,0,0}));
-					draw_mesh(&my_sphere, linalg.matrix4_translate_f32({6,0,0}));
-					draw_mesh(&my_cone, linalg.matrix4_translate_f32({7.5,0,0}));
-					draw_mesh(&my_super_mesh, linalg.matrix4_translate_f32({9,0,0}));
-				end_pipeline();
-			end_target();
+					mesh_draw(&my_arrow, linalg.matrix4_translate_f32({-2,0,0}));
+					mesh_draw(&my_cube, 1);
+					mesh_draw(&my_cirle, linalg.matrix4_translate_f32({1.5,0,0}));
+					mesh_draw(&my_quad, linalg.matrix4_translate_f32({3,0,0}));
+					mesh_draw(&my_cylinder, linalg.matrix4_translate_f32({4.5,0,0}));
+					mesh_draw(&my_sphere, linalg.matrix4_translate_f32({6,0,0}));
+					mesh_draw(&my_cone, linalg.matrix4_translate_f32({7.5,0,0}));
+					mesh_draw(&my_super_mesh, linalg.matrix4_translate_f32({9,0,0}));
+				pipeline_end();
+			target_end();
 
 			/*
-			begin_pipeline(my_pipeline3, camera, [4]f32{0.3,0.2,0.1,1});
+			pipeline_begin(my_pipeline3, camera, [4]f32{0.3,0.2,0.1,1});
 			set_texture(.texture_diffuse, tex2);
-			draw_mesh(&my_arrow, linalg.matrix4_translate_f32({-3,0,0}));
-			draw_mesh(&my_cube, 1);
-			draw_mesh(&my_cirle, linalg.matrix4_translate_f32({1.5,0,0}));
-			draw_mesh(&my_quad, linalg.matrix4_translate_f32({3,0,0}));
-			draw_mesh(&my_cylinder, linalg.matrix4_translate_f32({4.5,0,0}));
-			draw_mesh(&my_sphere, linalg.matrix4_translate_f32({6,0,0}));
-			draw_mesh(&my_cone, linalg.matrix4_translate_f32({7.5,0,0}));
-			draw_mesh(&my_super_mesh, linalg.matrix4_translate_f32({9,0,0}));
-			end_pipeline(my_pipeline2);
+			mesh_draw(&my_arrow, linalg.matrix4_translate_f32({-3,0,0}));
+			mesh_draw(&my_cube, 1);
+			mesh_draw(&my_cirle, linalg.matrix4_translate_f32({1.5,0,0}));
+			mesh_draw(&my_quad, linalg.matrix4_translate_f32({3,0,0}));
+			mesh_draw(&my_cylinder, linalg.matrix4_translate_f32({4.5,0,0}));
+			mesh_draw(&my_sphere, linalg.matrix4_translate_f32({6,0,0}));
+			mesh_draw(&my_cone, linalg.matrix4_translate_f32({7.5,0,0}));
+			mesh_draw(&my_super_mesh, linalg.matrix4_translate_f32({9,0,0}));
+			pipeline_end(my_pipeline2);
 			*/
 
-			begin_target(window, [4]f32{0.05,0.03,0.1,1});
+			target_begin(window, [4]f32{0.05,0.03,0.1,1});
 				
-				begin_pipeline(my_pipeline, camera);
+				pipeline_begin(my_pipeline, camera);
 					set_texture(.texture_diffuse, tex);
-					draw_mesh(&my_arrow, linalg.matrix4_translate_f32({-2,0,0}));
-					draw_mesh(&my_cube, 1);
-					draw_mesh(&my_cirle, linalg.matrix4_translate_f32({1.5,0,0}));
-					draw_mesh(&my_quad, linalg.matrix4_translate_f32({3,0,0}));
-					draw_mesh(&my_cylinder, linalg.matrix4_translate_f32({4.5,0,0}));
-					draw_mesh(&my_sphere, linalg.matrix4_translate_f32({6,0,0}));
-					draw_mesh(&my_cone, linalg.matrix4_translate_f32({7.5,0,0}));
-					draw_mesh(&my_super_mesh, linalg.matrix4_translate_f32({9,0,0}));
+					mesh_draw(&my_arrow, linalg.matrix4_translate_f32({-2,0,0}));
+					mesh_draw(&my_cube, 1);
+					mesh_draw(&my_cirle, linalg.matrix4_translate_f32({1.5,0,0}));
+					mesh_draw(&my_quad, linalg.matrix4_translate_f32({3,0,0}));
+					mesh_draw(&my_cylinder, linalg.matrix4_translate_f32({4.5,0,0}));
+					mesh_draw(&my_sphere, linalg.matrix4_translate_f32({6,0,0}));
+					mesh_draw(&my_cone, linalg.matrix4_translate_f32({7.5,0,0}));
+					mesh_draw(&my_super_mesh, linalg.matrix4_translate_f32({9,0,0}));
 
 					set_texture(.texture_diffuse, tex2); //Draw below
 					draw_cube(linalg.matrix4_translate_f32({0,-2,0}));
@@ -459,7 +459,7 @@ main2 :: proc () {
 					draw_cylinder(linalg.matrix4_translate_f32({4.5,-2,0}));
 					draw_sphere(linalg.matrix4_translate_f32({6,-2,0}));
 					draw_cone(linalg.matrix4_translate_f32({7.5,-2,0}));
-					set_texture(.texture_diffuse, get_white_texture());
+					set_texture(.texture_diffuse, texture2D_get_white());
 					draw_arrow({9,-2,0}, {1,0,0}, {1,0,0,1});
 					draw_arrow({9,-4,0}, {-1,0,0}, {0.5,0,0,1});
 					draw_arrow({9,-6,0}, {0,1,0}, {0,1,0,1});
@@ -469,13 +469,13 @@ main2 :: proc () {
 					draw_arrow({9,2,0}, {1,1,1}, {1,1,1,1});
 
 					set_texture(.texture_diffuse, tex3);
-					draw_mesh(&my_quad, linalg.matrix4_translate_f32({0,2.1,0})); //place 1 is model_matrix for identity matrix
+					mesh_draw(&my_quad, linalg.matrix4_translate_f32({0,2.1,0})); //place 1 is model_matrix for identity matrix
 					
 					set_texture(.texture_diffuse, tex_eye);
 					draw_cube(look_at({0,10,0}, camera.position, {0,1,0}));
 					draw_sphere(look_at({5,5,-5}, camera.position, {0,1,0}));
 					
-				end_pipeline();
+				pipeline_end();
 				
 				cam2d : Camera2D = {
 					position 		= {0,0},		// Camera position
@@ -486,20 +486,20 @@ main2 :: proc () {
 					far 			= 2,
 				};
 
-				begin_pipeline(my_pipeline_instanced, camera);
-					//Dont draw with this draw_mesh(&my_sphere_instanced, 1);
-					draw_mesh_instanced(&my_sphere_instanced, len(my_balls)); //Draw like this.
-				end_pipeline();
+				pipeline_begin(my_pipeline_instanced, camera);
+					//Dont draw with this mesh_draw(&my_sphere_instanced, 1);
+					mesh_draw_instanced(&my_sphere_instanced, len(my_balls)); //Draw like this.
+				pipeline_end();
 
 				//Draw a small quad in the center of the screen.
-				begin_pipeline(my_pipeline2, cam2d);
-					set_texture(.texture_diffuse, get_white_texture());
+				pipeline_begin(my_pipeline2, cam2d);
+					set_texture(.texture_diffuse, texture2D_get_white());
 					draw_quad(linalg.matrix4_scale_f32({0.01,0.01,1})); //place 1 is model_matrix for identity matrix
-				end_pipeline();
+				pipeline_end();
 				
-				draw_text_simple("Hello World", {0,0}, 100);
+				text_draw_simple("Hello World", {0,0}, 100);
 
-			end_target();
+			target_end();
 			
 			draw_coordinate_overlay(window, camera);
 			draw_fps_overlay(window);
