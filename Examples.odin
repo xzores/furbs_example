@@ -7,7 +7,7 @@ import "core:math/linalg"
 import "core:math/rand"
 import "core:log"
 import "core:mem"
-import "core:runtime"
+import "base:runtime"
 
 import "core:image/png"
 

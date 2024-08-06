@@ -1,4 +1,2 @@
-Font is public domain.
-Found at https://ggbot.itch.io/first-time-writing-font?download
-
-Thanks to GGBotNet
+Font from: https://www.fontspace.com/freesans-font-f13276
+Licensed as : GPL

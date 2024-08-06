@@ -3,18 +3,23 @@ package main;
 import "core:time"
 import "core:math"
 import "core:fmt"
+import "core:slice"
 import "core:math/linalg"
 import "core:math/rand"
 import "core:log"
 import "core:mem"
-import "core:runtime"
+import "core:strings"
+import "core:thread"
 
+import "base:runtime"
+
+import "core:image"
 import "core:image/png"
 
-import fs "vendor:fontstash"
 
 import render "furbs/render"
-//import gui "furbs/gui"
+import gui "furbs/regui"
+import fs "furbs/fontstash"
 import "furbs/utils"
 
 import gl "furbs/render/gl"
@@ -33,19 +38,29 @@ Vertex :: struct {
 }
 
 /*
-TODO
-WINDOW fullscreen, test for secoundary window and make current one work
-See more in window, a lot of no done functions
-TODO test that running without a main window works.
-Make VAO's like active texture (client side)
-TODO upload consistent instance data and mesh data.
+TODO:
 
-Finish the opengl wrapper to use odin arrays and enums and bitsets.
+Write to gingerbill about the preformence of libs in debug mode (image lib example)
+Write to gingerbill about struct->union->struct and union->struct->union->struct duality (like how there is nothing to help)
+
+TODO optimize texture atlas by not storing pixels client side. This requires a function that can copy from one texture to another.
+
+Fontstash seems so broken I cannot use it, so it must be rewritten...
+See more in window, a lot of not done functions
+Disabling v-syn when not using a main window does not work, this is a bug.
+Make VAO's like active texture (client side) in the opengl wrapper (because it works by having a default VAO and then swapping it), currently there is a bug.
+TODO upload consistent instance data and mesh data. (currently there is a bug)
+
+Make re-gui (retained gui)
+TODO refactor the client side texture atlas into utils and make an option to do GPU side texture atlas, requires gpu to gpu texture copy (should also be done).
+TODO make a better font-stash.
+
+Finish the opengl wrapper to use odin arrays and enums and bitsets, see https://github.com/mtarik34b/opengl46-enum-wrapper.
 when using double buffering uploading all data every frame, there should be a keep_consistent variable.
 When that is done you can do more complicated meshing stuff and get ready for particals.
 
 When that is done do 3D textures.
-When that is done do a tool that can generate 3D textures from 2D textures (and sell on steam).
+When that is done do a tool that can generate 3D textures from 2D textures.
 */
 
 vertex_data : []Vertex = {
@@ -65,7 +80,6 @@ Ball :: struct {
 Eye :: struct {
 	position : [3]f32,
 }
-
 
 main1 :: proc () {
 
@@ -88,7 +102,7 @@ main1 :: proc () {
 			width = 600,
 			height = 600,
 			title = "my main window",
-			resize_behavior = .resize_backbuffer,
+			resize_behavior = .allow_resize,
 			antialiasing = .msaa8,
 		}
 		
@@ -163,7 +177,7 @@ main1 :: proc () {
 	fmt.printf("Successfully closed\n");
 }
 
-main :: proc () {
+main_something :: proc () {
 	
 	context.logger = utils.create_console_logger(.Info);
 	
@@ -181,24 +195,27 @@ main :: proc () {
 		attribute_spec 	: [Attribute_location]Attribute_info = {}; 	//TODO make these required
 		
 		window_desc : Window_desc = {
-			width = 600,
-			height = 600,
+			width = 800,
+			height = 800,
 			title = "my main window",
-			resize_behavior = .resize_backbuffer,
+			resize_behavior = .allow_resize,
 			antialiasing = .msaa8,
 		}
 		
 		//this window is optional and will be destroyed by render.destroy(). It must live for the entirety of the program.
-		window := init(uniform_spec, attribute_spec, shader_defs, required_gl_verion = .opengl_4_5, window_desc = window_desc, pref_warn = true);
+		window_nan := init(uniform_spec, attribute_spec, shader_defs, required_gl_verion = .opengl_4_5, window_desc = nil, pref_warn = false);
 		//init(uniform_spec, attribute_spec, shader_defs, required_gl_verion = .opengl_3_3);
 		defer destroy();
 		
 		//window := make_window_desc(window_desc);
 		//defer destroy_window(window);
-		window_2 := window_make(400, 400, "my_window_2", .resize_backbuffer, .none);
-		defer window_destroy(window_2);
-
-		my_frame_buffer := frame_buffer_make_textures(1, 400, 400, .RGBA8, .depth_component32, false, .nearest);
+		window := window_make(800, 800, "my_window_2", .allow_resize, .msaa8);
+		defer window_destroy(window);
+		
+		gui_state := gui.init();
+		defer gui.destroy(&gui_state);
+		
+		my_frame_buffer := frame_buffer_make_textures(1, 800, 800, .RGBA8, .depth_component32, false, .nearest);
 		defer frame_buffer_destroy(my_frame_buffer);
 		
 		//window_set_mouse_mode(window, .bound);
@@ -257,7 +274,7 @@ main :: proc () {
 		for &ball, i in my_balls {
 			ball = Ball{position = [3]f32{-6, 0, 0}, velocity = [3]f32{2*rand.float32() - 1, 10 * rand.float32(),2*rand.float32() -1}};
 		}
-
+		
 		for &eye, i in my_eyes {
 			eye = Eye{position = [3]f32{0, 0, 0}};
 		}
@@ -292,9 +309,8 @@ main :: proc () {
 			}
 			mesh_destroy(&my_super_mesh);
 		}
-		mesh_resize(&my_super_mesh, my_super_mesh.vertex_count * 2, my_super_mesh.index_count * 2);
 
-		fmt.printf("v_size : %v\n", v_size);
+		mesh_resize(&my_super_mesh, my_super_mesh.vertex_count * 2, my_super_mesh.index_count * 2);
 		
 		camera : Camera3D = {
 			position 	= {0,0,-10},
@@ -309,18 +325,18 @@ main :: proc () {
 		
 		//tex := texture2D_make(512, 512, false, .repeat, .linear, .RGBA8, .no_upload, nil);
 		tex := texture2D_load_from_file("examples/res/textures/dirt.png", {.clamp_to_edge, .nearest, false, .RGBA8});
-		defer texture2D_destroy(&tex);
+		defer texture2D_destroy(tex);
 
 		tex2 := texture2D_load_from_file("examples/res/textures/test.png", {.repeat, .nearest, true, .RGBA8});
-		defer texture2D_destroy(&tex2);
+		defer texture2D_destroy(tex2);
 
 		tex3 := my_frame_buffer.color_attachments[0].(render.Texture2D);
 		
 		tex_up := texture2D_load_from_file("examples/res/textures/up.png", {.repeat, .nearest, true, .RGBA8});
-		defer texture2D_destroy(&tex_up);
+		defer texture2D_destroy(tex_up);
 		
 		tex_eye := texture2D_load_from_file("examples/res/textures/eye.png", {.repeat, .nearest, true, .RGBA8});
-		defer texture2D_destroy(&tex_eye);
+		defer texture2D_destroy(tex_eye);
 		
 		cam_rot : [2]f32;
 		speed : f32 = 10;
@@ -329,15 +345,26 @@ main :: proc () {
 		fullscreen : render.Fullscreen_mode = .windowed;
 		window_set_vsync(vsync);
 		
+		///// GUI stuff /////
+
+		my_button := gui.make_button(&gui_state, gui.Destination{.bottom_right, .bottom_right, {0, 0, 0.3, 0.1}}, "My button", nil);
+		
+		////////////////////
+		
 		for !window_should_close(window) {
 
 			if fullscreen != window.current_fullscreen {
 				window_set_fullscreen(state.window_in_focus, fullscreen);
 				fmt.printf("setting screen mode : %v\n", fullscreen);
 			}
-
+			
 			begin_frame();
-
+			gui.begin(&gui_state, window);
+			
+			if gui.button_is_pressed(my_button) {
+				fmt.printf("Pressed my button");
+			}
+			
 			if is_key_pressed(.f5) {
 				shader_reload_all(); //return a list of the shaders failing to reload, and keep using the old ones...
 			}
@@ -438,7 +465,7 @@ main :: proc () {
 			mesh_draw(&my_super_mesh, linalg.matrix4_translate_f32({9,0,0}));
 			pipeline_end(my_pipeline2);
 			*/
-
+			
 			target_begin(window, [4]f32{0.05,0.03,0.1,1});
 				
 				pipeline_begin(my_pipeline, camera);
@@ -467,7 +494,7 @@ main :: proc () {
 					draw_arrow({9,-10,0}, {0,0,1}, {0,0,1,1});
 					draw_arrow({9,-12,0}, {0,0,-1}, {0,0,0.5,1});
 					draw_arrow({9,2,0}, {1,1,1}, {1,1,1,1});
-
+					
 					set_texture(.texture_diffuse, tex3);
 					mesh_draw(&my_quad, linalg.matrix4_translate_f32({0,2.1,0})); //place 1 is model_matrix for identity matrix
 					
@@ -485,7 +512,7 @@ main :: proc () {
 					near 			= -2,
 					far 			= 2,
 				};
-
+				
 				pipeline_begin(my_pipeline_instanced, camera);
 					//Dont draw with this mesh_draw(&my_sphere_instanced, 1);
 					mesh_draw_instanced(&my_sphere_instanced, len(my_balls)); //Draw like this.
@@ -498,13 +525,322 @@ main :: proc () {
 				pipeline_end();
 				
 				text_draw_simple("Hello World", {0,0}, 100);
-
+			
 			target_end();
 			
 			draw_coordinate_overlay(window, camera);
 			draw_fps_overlay(window);
 
+			gui.end(&gui_state);
 			end_frame();
+			mem.free_all(context.temp_allocator);
+		}
+	}
+	
+	utils.print_tracking_memory_results();
+	utils.destroy_tracking_allocators();
+	
+	fmt.printf("Successfully closed\n");
+}
+
+main_atlas_test :: proc () {
+	
+	context.logger = utils.create_console_logger(.Info);
+	
+	utils.init_tracking_allocators();
+	{
+		//Just for memory stuff
+		context.allocator = utils.make_tracking_allocator();
+		
+		//Begin of code
+		using render;
+		
+		start_time := time.now();
+		
+		uniform_spec 	: [Uniform_location]Uniform_info = {};		//TODO make these required	
+		attribute_spec 	: [Attribute_location]Attribute_info = {}; 	//TODO make these required
+		
+		window_desc : Window_desc = {
+			width = 800,
+			height = 800,
+			title = "my main window",
+			resize_behavior = .allow_resize,
+			antialiasing = .msaa8,
+		}
+		
+		window := init(uniform_spec, attribute_spec, shader_defs, required_gl_verion = .opengl_4_5, window_desc = window_desc, pref_warn = false);
+		defer destroy();
+		
+		//A pipeline is a collection of OpenGL states, a render target and a shader.
+		//The target can be a window to draw to the screen or an FBO for drawing to a texture.
+		my_pipeline := pipeline_make(get_default_shader(), culling = .back_cull);
+		
+		atlas := texture2D_atlas_make(.RGBA8, {.clamp_to_edge, .nearest, false, .RGBA8}, 1, 128);
+		defer texture2D_atlas_destroy(atlas);
+		
+		////////////////////
+		
+		handles := make([dynamic]Atlas_handle);
+		defer delete(handles);
+
+		////////////////////
+
+		for !window_should_close(window) {
+			
+			begin_frame();
+				
+				cnt := 10;
+				
+				if is_key_pressed(.up) {
+					
+					el_time : f64 = 0;
+
+					for i in 0..<cnt {
+						pixel_size := [2]i32{cast(i32)rand.float32_range(1, 32), cast(i32)rand.float32_range(1, 32)};
+						
+						pixels := make([][4]u8, pixel_size.x * pixel_size.y);
+						defer delete(pixels);
+
+						r,g,b := cast(u8)rand.uint32(), cast(u8)rand.uint32(), cast(u8)rand.uint32();
+						for &p in pixels {
+							p = [4]u8{r,g,b, 255};
+						}
+
+						sw : time.Stopwatch;
+						time.stopwatch_start(&sw);
+						
+						handle, ok := texture2D_atlas_upload(&atlas, pixel_size, slice.reinterpret([]u8, pixels));
+						if ok {
+							append(&handles, handle);
+						}
+						
+						time.stopwatch_stop(&sw);
+						dur := time.stopwatch_duration(sw);
+						el_time += time.duration_milliseconds(dur);
+					}
+					
+					fmt.printf("Added %v new sprite(s) to the atlas, time taken %v\n", cnt, el_time);	
+				}
+				if is_key_pressed(.down) {
+					for i in 0..<cnt {
+						if len(handles) != 0 {
+							i := cast(int)(rand.uint64() %% cast(u64)len(handles));
+							handle := handles[i];
+							unordered_remove(&handles, i);
+							texture2D_atlas_remove(&atlas, handle);
+						}
+					}
+				}
+				if is_key_pressed(.left) {
+					texture2D_atlas_shirnk(&atlas);
+				}
+				if is_key_pressed(.right) {
+					texture2D_atlas_grow(&atlas);
+				}
+
+				target_begin(window, [4]f32{0.2, 0.2, 0.2, 1});
+					pipeline_begin(my_pipeline, camera_get_pixel_space(window));
+						set_texture(.texture_diffuse, atlas.backing);
+						draw_quad_rect({100,100,600,600});
+					pipeline_end();
+					
+					text_draw("Press up to add to the atlas", {10,50}, 30, false, false, {1,1,1,1});
+					text_draw("Press down to remove", {10,10}, 30, false, false, {1,1,1,1});
+
+					text_draw("Press left to shrink", {350,50}, 30, false, false, {1,1,1,1});
+					text_draw("Press right to grow", {350,10}, 30, false, false, {1,1,1,1});
+
+				target_end();
+
+			end_frame();
+
+			mem.free_all(context.temp_allocator);
+		}
+	}
+	
+	utils.print_tracking_memory_results();
+	utils.destroy_tracking_allocators();
+
+	fmt.printf("Successfully closed\n");
+}
+
+
+main_text_test :: proc () {
+	
+	context.logger = utils.create_console_logger(.Error);
+	
+	utils.init_tracking_allocators();
+	{
+		//Just for memory stuff
+		context.allocator = utils.make_tracking_allocator();
+		
+		//Begin of code
+		using render;
+		
+		start_time := time.now();
+		
+		uniform_spec 	: [Uniform_location]Uniform_info = {};		//TODO make these required	
+		attribute_spec 	: [Attribute_location]Attribute_info = {}; 	//TODO make these required
+		
+		window_desc : Window_desc = {
+			width = 1600,
+			height = 800,
+			title = "my main window",
+			resize_behavior = .allow_resize,
+			antialiasing = .msaa8,
+		}
+		
+		window := init(uniform_spec, attribute_spec, shader_defs, required_gl_verion = .opengl_3_3, window_desc = window_desc, pref_warn = false);
+		defer destroy();
+		
+		//A pipeline is a collection of OpenGL states, a render target and a shader.
+		//The target can be a window to draw to the screen or an FBO for drawing to a texture.
+		my_pipeline := pipeline_make(get_default_shader(), culling = .back_cull);
+		
+		text_pipeline := pipeline_make(get_default_text_shader(), .blend, false, false, .fill, culling = .back_cull);
+		defer pipeline_destroy(text_pipeline);
+		
+		font_ctx := fs.font_init(10000);
+		defer fs.font_destroy(&font_ctx);
+		
+		my_font := fs.add_font_path_single(&font_ctx, "examples/res/fonts/FreeSans.ttf");
+		
+		texture : Texture2D = texture2D_make(false, .repeat, .nearest, .R8, 512, 512, .no_upload, nil, clear_color = [4]f32{0.5, 0, 0, 0});
+		defer texture2D_destroy(texture);
+		
+		fs.push_font(&font_ctx, my_font);
+		defer fs.pop_font(&font_ctx);		
+		
+		instance_desc : Instance_data_desc = {
+			data_type 	= Default_instance_data,
+			data_points = 1,
+			usage 		= .dynamic_upload, //TODO maybe dynamic upload is better here?
+		};
+		
+		verts, indices := generate_quad({1,1,1}, {0,0,0}, true);
+		defer delete(verts);
+		defer indices_delete(indices);
+		char_mesh : Mesh_single = mesh_make_single(verts, indices, .static_use, .triangles, instance_desc);
+		defer mesh_destroy(&char_mesh);
+		
+		////////////////////
+		
+		handles := make([dynamic]fs.Atlas_handle);
+		defer delete(handles);
+		
+		////////////////////
+		
+		the_string := fmt.aprint("Text : ");
+		defer delete(the_string);
+		//the_string := "A 橝 橝橝";
+
+		for !window_should_close(window) {
+			
+			begin_frame();
+				
+				target_begin(window, [4]f32{0.2, 0.2, 0.2, 1});
+					
+					for key in recive_next_input() {
+						s := fmt.aprintf("%v",key);
+						defer delete(s);
+						new_string := strings.concatenate({the_string, s});
+						delete(the_string);
+						the_string = new_string;
+					}
+					
+					if is_key_pressed(.left) {
+						fs.client_atlas_shirnk(&font_ctx.atlas);
+						fmt.printf("shrink\n");
+					}
+					if is_key_pressed(.right) {
+						fs.client_atlas_grow(&font_ctx.atlas);
+						fmt.printf("grow\n");
+					}
+									
+					//For drawing the rect
+					pipeline_begin(my_pipeline, camera_get_pixel_space(window));
+						set_texture(.texture_diffuse, texture);
+						draw_quad_rect({150,150,600,600});
+						
+						ymin := fs.get_lowest_point(&font_ctx);
+						
+						set_texture(.texture_diffuse, texture2D_get_white());
+						/*
+						draw_quad_rect({50, 40,3000,1}, 0, [4]f32{1,0,0,0.5});
+						draw_quad_rect({50, 40, 5, fs.get_ascent(&font_ctx)}, 0, [4]f32{0,1,0,0.5});
+						draw_quad_rect({50, 40 + fs.get_descent(&font_ctx), 5,-fs.get_descent(&font_ctx)}, 0, [4]f32{0,0,1,0.5});
+						draw_quad_rect({900, 40, 100, 100}, 0, [4]f32{0,0,0,1});
+						draw_quad_rect({1000, 40 + fs.get_descent(&font_ctx), 100, 100}, 0, [4]f32{1,0,0,0.5});
+						draw_quad_rect({1100, 40 + ymin, 20, -ymin}, 0, [4]f32{0,0,1,0.5});
+						draw_quad_rect({1120, 40, 5, fs.get_highest_point(&font_ctx)}, 0, [4]f32{0,1,0,0.5});				
+						draw_quad_rect({1130, 40 + fs.get_lowest_point(&font_ctx), 5, fs.get_max_height(&font_ctx)}, 0, [4]f32{1,0,0,0.5});
+						*/
+						draw_quad_rect(fs.get_visible_text_bounds(&font_ctx, the_string) + {50,40,0,0}, 0, [4]f32{1,1,1,0.3});
+						draw_quad_rect(fs.get_text_bounds(&font_ctx, the_string) + {50,40,0,0}, 0, [4]f32{0.3,0,0.5,0.3});
+					pipeline_end();
+					
+					//For drawing the text
+					pipeline_begin(text_pipeline, camera_get_pixel_space(window));
+						
+						//fs.set_em_size(&font_ctx, 100);
+						fs.set_max_height_size(&font_ctx, 30);
+						iter := fs.make_font_iter(&font_ctx, the_string);
+						//iter := fs.make_font_iter(&font_ctx, "ffffFFf");
+						defer fs.destroy_font_iter(iter);
+						
+						if new_size, ok := fs.requires_reupload(&font_ctx); ok {
+							fmt.printf("reuploading font texture : %v\n", new_size);
+							texture2D_destroy(texture);
+							texture = texture2D_make(false, .repeat, .nearest, .R8, new_size.x, new_size.y, .R8, fs.get_bitmap(&font_ctx));
+						}
+						
+						rect, done := fs.get_next_quad_upload(&font_ctx);
+						for !done {
+							//Here the atlas data is extracted from the atlas, alternatively the entire atlas can be uploaded.
+							extracted_data := make([]u8, rect.z * rect.w);
+							defer delete(extracted_data);
+							
+							dims := fs.get_bitmap_dimension(&font_ctx);
+							fs.copy_pixels(1, dims.x, dims.y, rect.x, rect.y, fs.get_bitmap(&font_ctx), rect.z, rect.w, 0, 0, extracted_data, rect.z, rect.w);
+							texture2D_upload_data(&texture, .R8, {rect.x, rect.y}, rect.zw, extracted_data);
+							
+							rect, done = fs.get_next_quad_upload(&font_ctx);
+						}
+						
+						instance_data := make([dynamic]Default_instance_data);
+						defer delete(instance_data);
+						
+						for q, coords in fs.font_iter_next(&font_ctx, &iter) {
+							append(&instance_data, Default_instance_data {
+								instance_position 	= {q.x + 50, q.y + 40, 0},
+								instance_scale 		= {q.z, q.w, 1},
+								instance_rotation 	= {0, 0, 0}, //Euler rotation
+								instance_tex_pos_scale 	= coords,
+							});
+						}
+						
+						if i_data, ok := char_mesh.instance_data.?; ok {
+							if i_data.data_points < len(instance_data) {
+								mesh_resize_instance_single(&char_mesh, len(instance_data));
+								log.infof("Resized text instance data. New length : %v", len(instance_data));
+							}
+						}
+						else {
+							panic("!?!?!");
+						}
+						
+						upload_instance_data_single(&char_mesh, 0, instance_data[:]);
+						
+						set_uniform(get_default_text_shader(), .color_diffuse, [4]f32{1,1,1,1});
+						set_texture(.texture_diffuse, texture);
+						mesh_draw_instanced(&char_mesh, len(instance_data));
+						
+					pipeline_end();
+
+				target_end();
+
+			end_frame();
+
 			mem.free_all(context.temp_allocator);
 		}
 	}
