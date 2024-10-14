@@ -28,9 +28,6 @@ main :: proc () {
 		//Begin of code
 		using render;
 		
-		uniform_spec 	: [Uniform_location]Uniform_info = {};		//TODO make these required	
-		attribute_spec 	: [Attribute_location]Attribute_info = {}; 	//TODO make these required
-		
 		window_desc : Window_desc = {
 			width = 1000,
 			height = 1000,
@@ -39,7 +36,7 @@ main :: proc () {
 			antialiasing = .msaa4,
 		}
 		
-		window := init(uniform_spec, attribute_spec, shader_defs, required_gl_verion = .opengl_4_5, window_desc = window_desc, pref_warn = false);
+		window := init(shader_defs, required_gl_verion = .opengl_4_5, window_desc = window_desc, pref_warn = false);
 		defer destroy();
 		
 		gui_state := gui.init();

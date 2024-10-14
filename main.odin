@@ -81,6 +81,7 @@ Eye :: struct {
 	position : [3]f32,
 }
 
+/*
 main1 :: proc () {
 
 	context.logger = utils.create_console_logger(.Info);
@@ -95,9 +96,6 @@ main1 :: proc () {
 		
 		start_time := time.now();
 		
-		uniform_spec 	: [Uniform_location]Uniform_info = {};		//TODO make these required	
-		attribute_spec 	: [Attribute_location]Attribute_info = {}; 	//TODO make these required
-		
 		window_desc : Window_desc = {
 			width = 600,
 			height = 600,
@@ -106,7 +104,7 @@ main1 :: proc () {
 			antialiasing = .msaa8,
 		}
 		
-		window := init(uniform_spec, attribute_spec, shader_defs, required_gl_verion = .opengl_4_5, window_desc = window_desc, pref_warn = true);
+		window := init(shader_defs, required_gl_verion = .opengl_4_5, window_desc = window_desc, pref_warn = true);
 		defer destroy();
 
 		window_set_vsync(false);
@@ -191,9 +189,6 @@ main_something :: proc () {
 		
 		start_time := time.now();
 		
-		uniform_spec 	: [Uniform_location]Uniform_info = {};		//TODO make these required	
-		attribute_spec 	: [Attribute_location]Attribute_info = {}; 	//TODO make these required
-		
 		window_desc : Window_desc = {
 			width = 800,
 			height = 800,
@@ -203,8 +198,7 @@ main_something :: proc () {
 		}
 		
 		//this window is optional and will be destroyed by render.destroy(). It must live for the entirety of the program.
-		window_nan := init(uniform_spec, attribute_spec, shader_defs, required_gl_verion = .opengl_4_5, window_desc = nil, pref_warn = false);
-		//init(uniform_spec, attribute_spec, shader_defs, required_gl_verion = .opengl_3_3);
+		window_nan := init(shader_defs, required_gl_verion = .opengl_4_5, window_desc = nil, pref_warn = false);
 		defer destroy();
 		
 		//window := make_window_desc(window_desc);
@@ -215,7 +209,7 @@ main_something :: proc () {
 		gui_state := gui.init();
 		defer gui.destroy(&gui_state);
 		
-		my_frame_buffer := frame_buffer_make_textures(1, 800, 800, .RGBA8, .depth_component32, false, .nearest);
+		my_frame_buffer := render.frame_buffer_make_textures(1, 800, 800, .RGBA8, .depth_component32, false, .nearest);
 		defer frame_buffer_destroy(my_frame_buffer);
 		
 		//window_set_mouse_mode(window, .bound);
@@ -557,9 +551,6 @@ main_atlas_test :: proc () {
 		
 		start_time := time.now();
 		
-		uniform_spec 	: [Uniform_location]Uniform_info = {};		//TODO make these required	
-		attribute_spec 	: [Attribute_location]Attribute_info = {}; 	//TODO make these required
-		
 		window_desc : Window_desc = {
 			width = 800,
 			height = 800,
@@ -568,7 +559,7 @@ main_atlas_test :: proc () {
 			antialiasing = .msaa8,
 		}
 		
-		window := init(uniform_spec, attribute_spec, shader_defs, required_gl_verion = .opengl_4_5, window_desc = window_desc, pref_warn = false);
+		window := init(shader_defs, required_gl_verion = .opengl_4_5, window_desc = window_desc, pref_warn = false);
 		defer destroy();
 		
 		//A pipeline is a collection of OpenGL states, a render target and a shader.
@@ -679,9 +670,6 @@ main_text_test :: proc () {
 		
 		start_time := time.now();
 		
-		uniform_spec 	: [Uniform_location]Uniform_info = {};		//TODO make these required	
-		attribute_spec 	: [Attribute_location]Attribute_info = {}; 	//TODO make these required
-		
 		window_desc : Window_desc = {
 			width = 1600,
 			height = 800,
@@ -690,7 +678,7 @@ main_text_test :: proc () {
 			antialiasing = .msaa8,
 		}
 		
-		window := init(uniform_spec, attribute_spec, shader_defs, required_gl_verion = .opengl_3_3, window_desc = window_desc, pref_warn = false);
+		window := init(shader_defs, required_gl_verion = .opengl_3_3, window_desc = window_desc, pref_warn = false);
 		defer destroy();
 		
 		//A pipeline is a collection of OpenGL states, a render target and a shader.
@@ -850,4 +838,4 @@ main_text_test :: proc () {
 
 	fmt.printf("Successfully closed\n");
 }
-
+*/
