@@ -9,22 +9,18 @@ import "core:math/linalg"
 import "core:math/rand"
 
 import "base:runtime"
+import "core:strings"
 
 import render "furbs/render"
 import gui "furbs/regui"
 import fs "furbs/fontstash"
 import "furbs/utils"
 
-
-main :: proc () {
+entry :: proc () {
 	
-	context.logger = utils.create_console_logger(.Info);
+	gui.set_debug_draw(true);
 	
-	utils.init_tracking_allocators();
 	{
-		//Just for memory stuff
-		context.allocator = utils.make_tracking_allocator();
-
 		//Begin of code
 		using render;
 		
@@ -66,6 +62,10 @@ main :: proc () {
 		int_slider := gui.make_int_slider(	panel, 	gui.Destination{.bottom_left, .bottom_left, {0.43, 0.2, 0.2, 0.05}}, 5, 5, 10, nil);
 		
 		text_field := gui.make_text_field(	panel, 	gui.Destination{.bottom_left, .bottom_left, {0.01, 0.3, 0.3, 0.05}}, "", "username", 1000, nil, appearance = field_apperance);
+		text_field2 := gui.make_text_field(	panel, 	gui.Destination{.bottom_left, .bottom_left, {0.01, 0.36, 0.1, 0.05}}, "", "something", 1000, nil, appearance = field_apperance);
+		text_field3 := gui.make_text_field(	panel, 	gui.Destination{.bottom_left, .bottom_left, {0.15, 0.36, 0.15, 0.1}}, "", "", 1000, nil, appearance = field_apperance);
+		
+		//text_field3 := gui.make_text_field(	panel, 	gui.Destination{.bottom_left, .bottom_left, {0.15, 0.36, 0.15, 0.1}}, "", "", 1000, nil, appearance = field_apperance);
 		
 		////////////////////
 		
@@ -89,9 +89,5 @@ main :: proc () {
 		}
 	}
 	
-	utils.print_tracking_memory_results();
-	utils.destroy_tracking_allocators();
-	
 	fmt.printf("Successfully closed\n");
-
 }

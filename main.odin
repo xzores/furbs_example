@@ -81,7 +81,106 @@ Eye :: struct {
 	position : [3]f32,
 }
 
+main :: proc () {
+	
+	context.assertion_failure_proc = utils.init_stack_trace();
+	defer utils.destroy_stack_trace();
+	
+	context.logger = utils.create_console_logger(.Info);
+	defer utils.destroy_console_logger(context.logger);
+	
+	utils.init_tracking_allocators();
+	
+	{
+		tracker : ^mem.Tracking_Allocator;
+		context.allocator = utils.make_tracking_allocator(tracker_res = &tracker); //This will use the backing allocator,
+		
+		entry();
+	}
+	
+	utils.print_tracking_memory_results();
+	utils.destroy_tracking_allocators();
+}
+
+
 /*
+entry :: proc () {
+	using render;
+	
+	window_desc : Window_desc = {
+		width = 600,
+		height = 600,
+		title = "my main window",
+		resize_behavior = .allow_resize,
+		antialiasing = .msaa8,
+	}
+	
+	window := init(shader_defs, required_gl_verion = .opengl_4_5, window_desc = window_desc, pref_warn = true);
+	defer destroy();
+
+	camera : Camera3D = {
+		position 	= {0,0,-10},
+		target 		= {0,0,0},
+		up			= {0,1,0},
+		fovy     	= 90,
+		ortho_height = 10,
+		projection	= .perspective,
+		near 		= 0.1,
+		far 		= 1000,
+	};
+
+	speed : f32 = 3;
+	
+	my_pipeline := pipeline_make(get_default_shader(), culling = .back_cull);
+	my_tex, ok := texture2D_load_from_file("test_image.png");
+	assert(ok, "failed to load image");
+	defer texture2D_destroy(my_tex);
+	
+	for !window_should_close(window) {
+			begin_frame();
+			
+			if is_key_down(Key_code.d) {
+				camera_move(&camera, speed * camera_right(camera) * delta_time());
+			}
+			if is_key_down(Key_code.a) {
+				camera_move(&camera, -speed * camera_right(camera) * delta_time());
+			}
+			if is_key_down(Key_code.w) {
+				camera_move(&camera, speed * camera_forward_horizontal(camera) * delta_time());
+			}
+			if is_key_down(Key_code.s) {
+				camera_move(&camera, -speed * camera_forward_horizontal(camera) * delta_time());
+			}
+			if is_key_down(Key_code.space) {
+				camera_move(&camera, speed * camera.up * delta_time());
+			}
+			if is_key_down(Key_code.control_left) {
+				camera_move(&camera, -speed * camera.up * delta_time());
+			}
+			if is_key_down(.kp_add) {
+				speed *= 1.1;
+			}
+			if is_key_down(.kp_subtract) {
+				speed /= 1.1;
+			}
+			
+			target_begin(window, [4]f32{0.5,0.5,0.5,1});
+				pipeline_begin(my_pipeline, camera);
+					set_texture(.texture_diffuse, my_tex);
+					draw_cube_rts({0,0, 2}, {0,0,0}, {1,1,1}, {1,0.7,0.7,1});
+				pipeline_end();
+			target_end();
+			
+			draw_coordinate_overlay(window, camera);
+			draw_fps_overlay(window);
+
+			end_frame();
+			mem.free_all(context.temp_allocator);
+		}
+	
+}
+
+
 main1 :: proc () {
 
 	context.logger = utils.create_console_logger(.Info);
