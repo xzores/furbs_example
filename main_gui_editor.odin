@@ -13,6 +13,7 @@ import "core:strings"
 
 import render "furbs/render"
 import gui "furbs/regui"
+import plot "furbs/plot"
 import fs "furbs/fontstash"
 import "furbs/utils"
 
@@ -32,7 +33,7 @@ entry :: proc () {
 			antialiasing = .msaa4,
 		}
 		
-		window := init(shader_defs, required_gl_verion = .opengl_4_5, window_desc = window_desc, pref_warn = false);
+		window := init(shader_defs, required_gl_verion = .opengl_4_5, window_desc = window_desc, pref_warn = true);
 		defer destroy();
 		
 		gui_state := gui.init();
@@ -65,7 +66,18 @@ entry :: proc () {
 		text_field2 := gui.make_text_field(	panel, 	gui.Destination{.bottom_left, .bottom_left, {0.01, 0.36, 0.1, 0.05}}, "", "something", 1000, nil, appearance = field_apperance);
 		text_field3 := gui.make_text_field(	panel, 	gui.Destination{.bottom_left, .bottom_left, {0.15, 0.36, 0.15, 0.1}}, "", "", 1000, nil, appearance = field_apperance);
 		
-		//text_field3 := gui.make_text_field(	panel, 	gui.Destination{.bottom_left, .bottom_left, {0.15, 0.36, 0.15, 0.1}}, "", "", 1000, nil, appearance = field_apperance);
+		//text_field3 := gui.make_text_field(	panel, 	gui.Destination{.bottom_left, .bottom_left, {0.15, 0.36, 0.15, 0.1}}, "", "", 1000, nil, appearance = field_apperance);		
+		
+		sin_norm :: proc (t : f64) -> f64 {
+			return math.sin(t * 2 * math.PI);
+		}
+		
+		r : plot.Signal;
+		defer plot.destroy_signal(r);
+		plot.fill_signal(&r, plot.Span(f64){0.001, 10, 0.1}, sin_norm, 1);
+		
+		my_xy_plot := plot.make_xy_plot({r}, "My x label", "My y Label", x_log = .no_log); // 
+		my_sin_plot := plot.make_regui_plot(panel, gui.Destination{.top_left, .top_left, {0.01, -0.01, 0.60, 0.30}}, my_xy_plot, appearance = field_apperance);
 		
 		////////////////////
 		
@@ -81,9 +93,10 @@ entry :: proc () {
 					gui.begin(&gui_state, window); //TODO: The window is simply passed to get the mouse position, this will likely change.
 						//Get the gui state of elements, like is button down and stuff.
 					gui.end(&gui_state);
+					
+					draw_fps_overlay();
 				target_end();
 				
-				draw_fps_overlay(window);
 			end_frame();
 			mem.free_all(context.temp_allocator);
 		}

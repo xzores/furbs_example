@@ -32,7 +32,7 @@ Uniform_location :: enum {
 
 	view_prj_mat,
 	inv_view_prj_mat,
-
+	
 	//Per model
 	mvp,
 	inv_mvp,		//will it ever be used?

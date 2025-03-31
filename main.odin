@@ -1,3 +1,4 @@
+#+feature dynamic-literals
 package main;
 
 import "core:time"
@@ -445,7 +446,7 @@ main_something :: proc () {
 		////////////////////
 		
 		for !window_should_close(window) {
-
+			
 			if fullscreen != window.current_fullscreen {
 				window_set_fullscreen(state.window_in_focus, fullscreen);
 				fmt.printf("setting screen mode : %v\n", fullscreen);
