@@ -33,7 +33,7 @@ entry :: proc () {
 			antialiasing = .msaa4,
 		}
 		
-		window := init(shader_defs, required_gl_verion = .opengl_4_5, window_desc = window_desc, pref_warn = true);
+		window := init(shader_defs, required_gl_verion = .opengl_4_3, window_desc = window_desc, pref_warn = true);
 		defer destroy();
 		
 		gui_state := gui.init();
@@ -51,20 +51,20 @@ entry :: proc () {
 		
 		////////////////////
 		
-		panel := gui.make_panel(&gui_state, gui.Destination{.bottom_left, .bottom_left, {0.01, 0.01, 0.68, 0.98}});
+		panel := gui.make_panel(&gui_state, gui.Destination{.bottom_left, .bottom_left, [4]f32{0.01, 0.01, 0.68, 0.98}});
 		
-		button := gui.make_button(			panel, 	gui.Destination{.bottom_left, .bottom_left, {0.01, 0.01, 0.3, 0.1}}, "My button", nil);
-		small_button := gui.make_button(	panel, 	gui.Destination{.bottom_left, .bottom_left, {0.32, 0.01, 0.1, 0.1}}, "My button", nil);
-		rect := gui.make_rect(				panel, 	gui.Destination{.bottom_left, .bottom_left, {0.43, 0.01, 0.1, 0.1}});
-		checkbox := gui.make_checkbox(		panel, 	gui.Destination{.bottom_left, .bottom_left, {0.54, 0.01, 0.1, 0.1}}, true, nil);
+		button := gui.make_button(			panel, 	gui.Destination{.bottom_left, .bottom_left, [4]f32{0.01, 0.01, 0.3, 0.1}}, "My button", nil);
+		small_button := gui.make_button(	panel, 	gui.Destination{.bottom_left, .bottom_left, [4]f32{0.32, 0.01, 0.1, 0.1}}, "My button", nil);
+		rect := gui.make_rect(				panel, 	gui.Destination{.bottom_left, .bottom_left, [4]f32{0.43, 0.01, 0.1, 0.1}});
+		checkbox := gui.make_checkbox(		panel, 	gui.Destination{.bottom_left, .bottom_left, [4]f32{0.54, 0.01, 0.1, 0.1}}, true, nil);
 		
-		label := gui.make_label(			panel, 	gui.Destination{.bottom_left, .bottom_left, {0.01, 0.2, 0.2, 0.05}}, "This is a label");
-		slider := gui.make_slider(			panel, 	gui.Destination{.bottom_left, .bottom_left, {0.22, 0.2, 0.2, 0.05}}, 15, 15, 30, nil);
-		int_slider := gui.make_int_slider(	panel, 	gui.Destination{.bottom_left, .bottom_left, {0.43, 0.2, 0.2, 0.05}}, 5, 5, 10, nil);
+		label := gui.make_label(			panel, 	gui.Destination{.bottom_left, .bottom_left, [4]f32{0.01, 0.2, 0.2, 0.05}}, "This is a label");
+		slider := gui.make_slider(			panel, 	gui.Destination{.bottom_left, .bottom_left, [4]f32{0.22, 0.2, 0.2, 0.05}}, 15, 15, 30, nil);
+		int_slider := gui.make_int_slider(	panel, 	gui.Destination{.bottom_left, .bottom_left, [4]f32{0.43, 0.2, 0.2, 0.05}}, 5, 5, 10, nil);
 		
-		text_field := gui.make_text_field(	panel, 	gui.Destination{.bottom_left, .bottom_left, {0.01, 0.3, 0.3, 0.05}}, "", "username", 1000, nil, appearance = field_apperance);
-		text_field2 := gui.make_text_field(	panel, 	gui.Destination{.bottom_left, .bottom_left, {0.01, 0.36, 0.1, 0.05}}, "", "something", 1000, nil, appearance = field_apperance);
-		text_field3 := gui.make_text_field(	panel, 	gui.Destination{.bottom_left, .bottom_left, {0.15, 0.36, 0.15, 0.1}}, "", "", 1000, nil, appearance = field_apperance);
+		text_field := gui.make_text_field(	panel, 	gui.Destination{.bottom_left, .bottom_left, [4]f32{0.01, 0.3, 0.3, 0.05}}, "", "username", 1000, nil, appearance = field_apperance);
+		text_field2 := gui.make_text_field(	panel, 	gui.Destination{.bottom_left, .bottom_left, [4]f32{0.01, 0.36, 0.1, 0.05}}, "", "something", 1000, nil, appearance = field_apperance);
+		text_field3 := gui.make_text_field(	panel, 	gui.Destination{.bottom_left, .bottom_left, [4]f32{0.15, 0.36, 0.15, 0.1}}, "", "", 1000, nil, appearance = field_apperance);
 		
 		//text_field3 := gui.make_text_field(	panel, 	gui.Destination{.bottom_left, .bottom_left, {0.15, 0.36, 0.15, 0.1}}, "", "", 1000, nil, appearance = field_apperance);		
 		
@@ -77,7 +77,7 @@ entry :: proc () {
 		plot.fill_signal(&r, plot.Span(f64){0.001, 10, 0.1}, sin_norm, 1);
 		
 		my_xy_plot := plot.make_xy_plot({r}, "My x label", "My y Label", x_log = .no_log); // 
-		my_sin_plot := plot.make_regui_plot(panel, gui.Destination{.top_left, .top_left, {0.01, -0.01, 0.60, 0.30}}, my_xy_plot, appearance = field_apperance);
+		my_sin_plot := plot.make_regui_plot(panel, gui.Destination{.top_left, .top_left, [4]f32{0.01, -0.01, 0.60, 0.30}}, my_xy_plot, appearance = field_apperance);
 		
 		////////////////////
 		
